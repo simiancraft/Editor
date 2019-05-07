@@ -2,7 +2,8 @@ import {
     Engine, Scene, ArcRotateCamera, PointLight, Vector3, Node,
     Observer, Tags,
     SceneSerializer, SceneLoader, InstancedMesh,
-    ParticleSystem, FilesInputStore
+    ParticleSystem, FilesInputStore,
+    SerializationHelper, AbstractMesh
 } from 'babylonjs';
 
 import Editor, {
@@ -28,6 +29,10 @@ export default class PrefabEditor extends EditorPlugin {
 
     protected onObjectSelected: Observer<any> = null;
     protected onAssetSelected: Observer<any> = null;
+    protected onObjectPropertyChanged: Observer<any> = null;
+
+    protected selectingNode: boolean = false;
+    protected masterNode: Node = null;
 
     // Static members
     private static _TreeRootId: string = 'prefab_root';
@@ -56,6 +61,7 @@ export default class PrefabEditor extends EditorPlugin {
         // Events
         this.editor.core.onSelectObject.remove(this.onObjectSelected);
         this.editor.core.onSelectAsset.remove(this.onAssetSelected);
+        this.editor.core.onObjectPropertyChange.remove(this.onObjectPropertyChanged);
 
         await super.close();
     }
@@ -85,6 +91,15 @@ export default class PrefabEditor extends EditorPlugin {
         this.tree.wholerow = true;
         this.tree.multipleSelection = true;
         this.tree.onCanDrag = (id, data) => false;
+        this.tree.onClick = (id, data: any) => {
+            const node = this.tree.getSelected();
+            if (node.id !== PrefabEditor._TreeRootId && node.data.id !== 0) {
+                this.selectingNode = true;
+                const effectiveObject = this.masterNode.getDescendants()[node.data.id - 1]; // Emmit master
+                this.editor.core.onSelectObject.notifyObservers(effectiveObject);
+                this.selectingNode = false;
+            }
+        };
         this.tree.onContextMenu = (id, data: any) => {
             return (id === PrefabEditor._TreeRootId) ? [] : [{ id: 'delete', text: 'Delete', img: 'icon-error', callback: () => {
                 const node = this.tree.getSelected();
@@ -100,6 +115,7 @@ export default class PrefabEditor extends EditorPlugin {
         // Events
         this.onObjectSelected = this.editor.core.onSelectObject.add(node => this.objectSelected(node));
         this.onAssetSelected = this.editor.core.onSelectAsset.add(asset => this.assetSelected(asset));
+        this.onObjectPropertyChanged = this.editor.core.onObjectPropertyChange.add(p => this.objectPropertyChanged(p.object));
     }
 
     /**
@@ -124,12 +140,25 @@ export default class PrefabEditor extends EditorPlugin {
         this._createNewScene(null);
     }
 
+    protected objectPropertyChanged (node: Node): void {
+        if (!(node instanceof Node) || !this.scene.getNodeByID(node.id))
+            return;
+
+        if (node instanceof AbstractMesh) {
+            const data = SceneSerializer.SerializeMesh(node, false, false);
+            SerializationHelper.Parse(() => node, data.meshes[0], this.scene, 'file:');
+        }
+        else {
+            SerializationHelper.Parse(() => node, node['serialize'](), this.scene, 'file:');
+        }
+    }
+
     /**
      * Once the user selects an object in the scene
      * @param node the selected node
      */
     protected objectSelected (node: Node): void {
-        if (this.selectedPrefab && this.selectedPrefab === node)
+        if (this.selectingNode)
             return;
         
         if (!node || !Tags.HasTags(node) || !Tags.MatchesQuery(node, 'prefab-master'))
@@ -369,8 +398,8 @@ export default class PrefabEditor extends EditorPlugin {
             this.pointLight = new PointLight('PrefabEditorLight', new Vector3(15, 15, 15), this.scene);
 
         // Place master prefab
-        const master = this.scene.getNodeByID(node.id);
-        master['position'] = Vector3.Zero();
+        this.masterNode = this.scene.getNodeByID(node.id);
+        this.masterNode['position'] = Vector3.Zero();
     }
 
     // Creates the base scene elements (camera)

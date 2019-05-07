@@ -92,9 +92,10 @@ export default class EditorToolbar {
                     { type: 'break' },
                     { id: 'path-finder', img: 'icon-graph', text: 'Path Finder...' },
                     { type: 'break' },
+                    { id: 'prefab-editor', img: 'icon-mesh', text: 'Prefab Editor...' },
+                    { type: 'break' },
                     { id: 'metadatas', img: 'icon-behavior-editor', text: 'Metadatas Editor...' },
-                    { id: 'notes', img: 'icon-behavior-editor', text: 'Notes...' },
-                    { id: 'prefab-editor', img: 'icon-mesh', text: 'Prefab Editor...' }
+                    { id: 'notes', img: 'icon-behavior-editor', text: 'Notes...' }
                 ]
             },
             { type: 'break' },
