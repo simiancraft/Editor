@@ -57,6 +57,7 @@ export default class PrefabAssetComponent implements IAssetComponent {
                 isPrefab: true,
                 nodes: sourceNodes.map(m => m.name),
                 nodeIds: sourceNodes.map(m => m.id),
+                prefabIds: sourceNodes.map(_ => BabylonTools.RandomId()),
                 instances: { },
                 sourceNodes: sourceNodes,
                 sourceNode: sourceNode,
@@ -244,6 +245,7 @@ export default class PrefabAssetComponent implements IAssetComponent {
                     isPrefab: true,
                     nodes: d.data.sourceNodes.map(m => m.name),
                     nodeIds: d.data.sourceNodes.map(m => m.id),
+                    prefabIds: d.data.prefabIds,
                     instances: instances
                 }
             };
@@ -336,6 +338,10 @@ export default class PrefabAssetComponent implements IAssetComponent {
         let count = 0;
 
         data.forEach(d => {
+            // Backward
+            if (!d.data.prefabIds)
+                d.data.prefabIds = d.data.nodeIds.map(_ => BabylonTools.RandomId());
+
             // Misc.
             d.data.sourceNodes = [];
             d.data.sourceInstances = { };
@@ -348,6 +354,9 @@ export default class PrefabAssetComponent implements IAssetComponent {
             d.data.sourceNode = source;
             d.data.sourceNodes.push(source);
 
+            source['metadata'] = source['metadata'] || { };
+            source['metadata'].prefab = { id: d.data.prefabIds[0] };
+
             // Create master instances
             const parents = (d.data.instances[source.name] || d.data.instances[source.id]);
             d.data.sourceInstances[source.id] = [];
@@ -357,6 +366,8 @@ export default class PrefabAssetComponent implements IAssetComponent {
                 parent.id = p.id;
                 parent['doNotSerialize'] = true;
                 parent['isPickable'] = true;
+                parent['metadata'] = parent['metadata'] || { };
+                parent['metadata'].prefab = { id: d.data.prefabIds[0] };
 
                 (d.data.sourceInstances[source.name] || d.data.sourceInstances[source.id]).push(parent);
                 Tags.AddTagsTo(parent, 'prefab-master');
@@ -373,6 +384,9 @@ export default class PrefabAssetComponent implements IAssetComponent {
                 if (!node)
                     continue;
 
+                node['metadata'] = node['metadata'] || { };
+                node['metadata'].prefab = { id: d.data.prefabIds[i] };
+
                 d.data.sourceNodes.push(node);
                 d.data.sourceInstances[node.id] = [];
 
@@ -382,6 +396,8 @@ export default class PrefabAssetComponent implements IAssetComponent {
                     instance['parent'] = instance['emitter'] = this.editor.core.scene.getNodeByID(inst.parentId);
                     instance['doNotSerialize'] = true;
                     instance['isPickable'] = true;
+                    instance['metadata'] = instance['metadata'] || { };
+                    instance['metadata'].prefab = { id: d.data.prefabIds[i] };
 
                     d.data.sourceInstances[node.id].push(instance);
                     Tags.AddTagsTo(instance, 'prefab');

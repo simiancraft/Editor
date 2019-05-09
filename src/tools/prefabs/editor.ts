@@ -140,17 +140,28 @@ export default class PrefabEditor extends EditorPlugin {
         this._createNewScene(null);
     }
 
+    /**
+     * Called on the user modifies an object
+     * @param node the node being modified in the current scene of the prefab editor tool
+     */
     protected objectPropertyChanged (node: Node): void {
         if (!(node instanceof Node) || !this.scene.getNodeByID(node.id))
             return;
 
-        if (node instanceof AbstractMesh) {
-            const data = SceneSerializer.SerializeMesh(node, false, false);
-            SerializationHelper.Parse(() => node, data.meshes[0], this.scene, 'file:');
-        }
-        else {
-            SerializationHelper.Parse(() => node, node['serialize'](), this.scene, 'file:');
-        }
+        const data = node instanceof AbstractMesh ? SceneSerializer.SerializeMesh(node, false, false).meshes[0] : node['serialize']();
+        const assets = this.editor.assets.prefabs.datas;
+
+        assets.forEach(a => {
+            const instances = a.data.sourceInstances;
+            for (const i in instances) {
+                const inst = instances[i];
+
+                inst.forEach(i => {
+                    if (i['metadata'].prefab.id === node['metadata'].prefab.id)
+                        SerializationHelper.Parse(() => i, data, this.scene, 'file:');
+                });
+            }
+        });
     }
 
     /**
@@ -181,7 +192,7 @@ export default class PrefabEditor extends EditorPlugin {
             const parent = n instanceof InstancedMesh ? n.sourceMesh.parent : n.parent;
             const parentNode = parent ? this.tree.get(parent.id) : null;
             const parentId = parentNode ? parentNode.id : PrefabEditor._TreeRootId;
-            this.tree.add({ id: n instanceof InstancedMesh ? n.sourceMesh.id : n.id, img: this.editor.graph.getIcon(n), text: n.name, data: { id: index } }, parentId);
+            this.tree.add({ id: n.id, img: this.editor.graph.getIcon(n), text: n.name, data: { id: index } }, parentId);
 
             if (parentId)
                 this.tree.expand(parentId);

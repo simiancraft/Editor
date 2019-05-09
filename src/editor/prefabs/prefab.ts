@@ -10,6 +10,7 @@ export interface Prefab {
     isPrefab: boolean; // Used to edition tools to check isPrefab
     nodes: string[];
     nodeIds: string[];
+    prefabIds: string[];
     instances: IStringDictionary<any[]>;
 
     sourceNodes?: (Mesh | PrefabNodeType)[];

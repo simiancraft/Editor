@@ -2022,6 +2022,7 @@ declare module 'babylonjs-editor/editor/prefabs/prefab' {
         isPrefab: boolean;
         nodes: string[];
         nodeIds: string[];
+        prefabIds: string[];
         instances: IStringDictionary<any[]>;
         sourceNodes?: (Mesh | PrefabNodeType)[];
         sourceNode?: Mesh | PrefabNodeType;
