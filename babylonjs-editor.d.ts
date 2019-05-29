@@ -2256,16 +2256,8 @@ declare module 'babylonjs-editor/editor/core' {
             onResize: Observable<{}>;
             onAddObject: Observable<{}>;
             onRemoveObject: Observable<{}>;
-            onGlobalPropertyChange: Observable<{
-                    baseObject?: any;
-                    object: any;
-                    property: string;
-                    value: any;
-                    initialValue: any;
-            }>;
-            onObjectPropertyChange: Observable<{
-                    object: any;
-            }>;
+            onModifyingObject: Observable<{}>;
+            onModifiedObject: Observable<{}>;
             onDropFiles: Observable<{
                     target: HTMLElement;
                     files: FileList;

@@ -33,7 +33,7 @@ export default class PrefabEditor extends EditorPlugin {
 
     protected onObjectSelected: Observer<any> = null;
     protected onAssetSelected: Observer<any> = null;
-    protected onObjectPropertyChanged: Observer<any> = null;
+    protected onObjectModified: Observer<any> = null;
 
     protected selectingNode: boolean = false;
     protected masterNode: Node = null;
@@ -71,7 +71,7 @@ export default class PrefabEditor extends EditorPlugin {
         // Events
         this.editor.core.onSelectObject.remove(this.onObjectSelected);
         this.editor.core.onSelectAsset.remove(this.onAssetSelected);
-        this.editor.core.onObjectPropertyChange.remove(this.onObjectPropertyChanged);
+        this.editor.core.onModifiedObject.remove(this.onObjectModified);
 
         await super.close();
     }
@@ -132,7 +132,7 @@ export default class PrefabEditor extends EditorPlugin {
         // Events
         this.onObjectSelected = this.editor.core.onSelectObject.add(node => this.objectSelected(node));
         this.onAssetSelected = this.editor.core.onSelectAsset.add(asset => this.assetSelected(asset));
-        this.onObjectPropertyChanged = this.editor.core.onObjectPropertyChange.add(p => this.objectPropertyChanged(p.object));
+        this.onObjectModified = this.editor.core.onModifiedObject.add((object: Node) => this.objectPropertyChanged(object));
     }
 
     /**
@@ -459,12 +459,13 @@ export default class PrefabEditor extends EditorPlugin {
         
         this.scenePicker = new ScenePicker(this.editor, this.scene, this.engine.getRenderingCanvas());
         this.scenePickerToolbar = this.scenePicker.createGizmosToolbar('PREFAB-EDITOR-GIZMOS-TOOLBAR');
-        this.scenePicker.onUpdateMesh = (m) => {
+        this.scenePicker.onUpdateMesh = (m => {
             this.editor.inspector.updateDisplay();
-        };
-        this.scenePicker.onPickedMesh = (m) => {
+            this.objectPropertyChanged(m);
+        });
+        this.scenePicker.onPickedMesh = (m => {
             if (!this.editor.core.disableObjectSelection)
                 this.editor.inspector.setObject(m);
-        };
+        });
     }
 }
