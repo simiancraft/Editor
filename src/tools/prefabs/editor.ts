@@ -10,6 +10,7 @@ import Editor, {
     EditorPlugin, Tools,
     Layout, Toolbar, Tree,
     Prefab, PrefabNodeType,
+    ScenePicker
 } from 'babylonjs-editor';
 
 export default class PrefabEditor extends EditorPlugin {
@@ -22,6 +23,9 @@ export default class PrefabEditor extends EditorPlugin {
     public scene: Scene = null;
     public camera: ArcRotateCamera = null;
     public pointLight: PointLight = null;
+
+    public scenePicker: ScenePicker = null;
+    public scenePickerToolbar: Toolbar = null;
 
     // Protected members
     protected selectedAsset: Prefab = null;
@@ -58,6 +62,12 @@ export default class PrefabEditor extends EditorPlugin {
         this.toolbar.element.destroy();
         this.layout.element.destroy();
 
+        // Scene picker
+        if (this.scenePicker) {
+            this.scenePicker.removeEvents();
+            this.scenePickerToolbar.element.destroy();
+        }
+
         // Events
         this.editor.core.onSelectObject.remove(this.onObjectSelected);
         this.editor.core.onSelectAsset.remove(this.onAssetSelected);
@@ -75,7 +85,14 @@ export default class PrefabEditor extends EditorPlugin {
         this.layout.panels = [
             { type: 'top', resizable: false, size: 30, content: '<div id="PREFAB-EDITOR-TOOLBAR" style="width: 100%; height: 100%;"></div>' },
             { type: 'left', resizable: true, size: '50%', content: '<div id="PREFAB-EDITOR-TREE" style="width: 100%; height: 100%;"></div>' },
-            { type: 'main', resizable: true, size: '50%', content: '<canvas id="PREFAB-EDITOR-PREVIEW" style="width: 100%; height: 100%; position: absolute; top: 0;"></canvas>' }
+            {
+                type: 'main',
+                resizable: true,
+                size: '50%',
+                content: `
+                    <div id="PREFAB-EDITOR-GIZMOS-TOOLBAR" style="width: 100%; height: 30px"></div>
+                    <canvas id="PREFAB-EDITOR-PREVIEW" style="width: 100%; height: calc(100% - 30px); position: absolute; top: 30;"></canvas>`
+                }
         ];
         this.layout.build(this.divElement.id);
 
@@ -433,5 +450,21 @@ export default class PrefabEditor extends EditorPlugin {
 
         // Render loop
         this.engine.runRenderLoop(() => this.scene.render());
+
+        // Scene picker
+        if (this.scenePicker) {
+            this.scenePicker.removeEvents();
+            this.scenePickerToolbar.element.destroy();
+        }
+        
+        this.scenePicker = new ScenePicker(this.editor, this.scene, this.engine.getRenderingCanvas());
+        this.scenePickerToolbar = this.scenePicker.createGizmosToolbar('PREFAB-EDITOR-GIZMOS-TOOLBAR');
+        this.scenePicker.onUpdateMesh = (m) => {
+            this.editor.inspector.updateDisplay();
+        };
+        this.scenePicker.onPickedMesh = (m) => {
+            if (!this.editor.core.disableObjectSelection)
+                this.editor.inspector.setObject(m);
+        };
     }
 }
